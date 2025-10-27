@@ -1,0 +1,49 @@
+#include <signal.h>
+#include <string.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <errno.h>
+
+int main(void) {
+    int N = 0;  // Compteur de signaux utiles
+
+    printf("=== Liste des %d premiers signaux ===\n", NSIG);
+    for (int i = 1; i < NSIG; i++) {
+        const char *desc = strsignal(i);
+        if (desc && strstr(desc, "Real-time") == NULL) {
+            printf("Signal %2d : %s\n", i, desc);
+            N++;
+        }
+    }
+    printf("\nNombre de signaux utiles (hors signaux temps réels) : %d\n", N);
+
+    printf("\n=== Tentative d'ignorance des signaux ===\n");
+    for (int i = 1; i < NSIG; i++) {
+        const char *desc = strsignal(i);
+
+        // On ne traite pas les signaux temps réel
+        if (!desc || strstr(desc, "Real-time"))
+            continue;
+
+        // Essaye d'ignorer le signal
+        void (*ret)(int);
+        errno = 0;
+        ret = signal(i, SIG_IGN);
+
+        if (ret == SIG_ERR) {
+            printf("Signal %2d (%s) : non ignoré (errno=%d)\n", i, desc, errno);
+        }
+    }
+
+    printf("\n=== Fin de configuration ===\n");
+    printf("Le programme attend maintenant (PID = %d)\n", getpid());
+    printf("Essayez d’envoyer des signaux avec : kill -SIGxxx %d\n", getpid());
+    printf("ou faites CTRL+C pour tester SIGINT.\n\n");
+
+    // Boucle infinie pour attendre des signaux
+    while (1) {
+        sleep(1);
+    }
+
+    return 0;
+}
