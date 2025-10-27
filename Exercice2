@@ -1,0 +1,43 @@
+#include <signal.h>
+#include <string.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <errno.h>
+
+// Fonction de traitement des signaux
+void Traite_Sig(int sig) {
+    printf("Fonction Traite_Sig : j’ai reçu le signal %d (%s)\n", sig, strsignal(sig));
+}
+
+int main(void) {
+    printf("=== Installation des gestionnaires de signaux ===\n");
+
+    for (int i = 1; i < NSIG; i++) {
+        const char *desc = strsignal(i);
+
+        // On ignore les signaux temps réels
+        if (!desc || strstr(desc, "Real-time"))
+            continue;
+
+        errno = 0;
+        void (*ret)(int) = signal(i, Traite_Sig);
+
+        if (ret == SIG_ERR) {
+            printf("Signal %2d (%s) : impossible de définir un traitement (errno=%d)\n",
+                   i, desc, errno);
+        }
+    }
+
+    printf("\n=== Fin de configuration ===\n");
+    printf("PID = %d\n", getpid());
+    printf("Envoyez des signaux avec : kill -SIGXXX %d\n", getpid());
+    printf("Exemples : kill -SIGINT %d, kill -SIGTERM %d, etc.\n", getpid(), getpid());
+    printf("Faites Ctrl+C pour tester SIGINT.\n\n");
+
+    // Boucle infinie : on attend des signaux
+    while (1) {
+        pause();  // Attente bloquante jusqu’à réception d’un signal
+    }
+
+    return 0;
+}
